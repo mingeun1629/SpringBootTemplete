@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTO Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dmonster.reward.api.ApiDao">
+
+	<select id="appConfig" resultType="AppVo">
+		SELECT * FROM APP_T LIMIT 1
+	</select>
+
+    <update id="updateToken" parameterType="MemberVo">
+    	UPDATE MEMBER_T 
+    	SET mt_jwt = #{mt_jwt},
+    	mt_app_token = #{mt_app_token}
+    	WHERE mt_id = #{mt_id}
+    </update>
+    
+    <select id="getMemberByIdx" parameterType="MemberVo" resultType="MemberVo">
+    	SELECT idx, mt_id, mt_pwd, mt_type, mt_wdate, mt_name, mt_jwt
+    	FROM MEMBER_T
+    	WHERE idx = #{idx}
+    </select>
+    
+    <select id="getMemberById" parameterType="MemberVo" resultType="MemberVo">
+    	SELECT idx, mt_id, mt_pwd, mt_type, mt_wdate, mt_name, mt_jwt
+    	FROM MEMBER_T
+    	WHERE mt_id = #{mt_id}
+    	AND mt_level = 1
+    </select>
+    
+    <select id="getMemberByToken" parameterType="MemberVo" resultType="MemberVo">
+    	SELECT idx, mt_id, mt_pwd, mt_type, mt_wdate, mt_name, mt_jwt
+    	FROM MEMBER_T
+    	WHERE mt_jwt = #{mt_jwt}
+    </select>
+    
+    <select id="countMemberById" parameterType="MemberVo" resultType="int">
+    	SELECT COUNT(*)
+    	FROM MEMBER_T
+    	WHERE mt_id = #{mt_id}
+    	AND mt_type = #{mt_type}
+    	AND mt_level = #{mt_level}
+    </select>
+    
+    <select id="countMemberByDi" parameterType="MemberVo" resultType="int">
+    	SELECT COUNT(*)
+    	FROM MEMBER_T
+    	WHERE mt_di = #{mt_di}
+    	AND mt_type = #{mt_type}
+    	AND mt_level = #{mt_level}
+    </select>
+    
+    <insert id="setMember" parameterType="MemberVo" useGeneratedKeys="true" keyColumn="idx" keyProperty="idx">
+		INSERT INTO MEMBER_T(mt_id, mt_pwd, mt_di, mt_level, mt_type, mt_nick, mt_wdate)
+		VALUES(#{mt_id}, #{mt_pwd}, #{mt_di}, #{mt_level}, #{mt_type}, #{mt_nick}, now())
+    </insert>
+    
+    <update id="setMemberCode" parameterType="MemberVo">
+		UPDATE MEMBER_T 
+		SET mt_code = #{mt_code}
+		WHERE 
+		idx = #{idx}
+		AND NOT EXISTS(
+			SELECT mt_code 
+			FROM MEMBER_T
+			WHERE mt_code = #{mt_code}
+		)
+    </update>
+    
+    <select id="getTerms" resultType="TermVo">
+    	SELECT *
+    	FROM TERM_T
+    	WHERE tt_level = 1
+    	AND tt_type in (1,2)
+    	ORDER BY tt_type ASC, idx ASC
+    </select>
+    
+    <update id="memberLeave" parameterType="MemberVo">
+		UPDATE MEMBER_T 
+		SET mt_level = 10,
+		mt_rdate = now(),
+		mt_jwt = NULL
+		WHERE idx = #{idx}
+    </update>
+    
+    <update id="memberPassword" parameterType="MemberVo">
+		UPDATE MEMBER_T 
+		SET mt_pwd = #{mt_pwd_new},
+		mt_edate = now()
+		WHERE idx = #{idx}
+    </update>
+    
+    <insert id="setNews" parameterType="java.util.List">
+		INSERT IGNORE INTO RSS_T(
+		   	guid, 
+		   	title, 
+		   	category, 
+		   	link, 
+		   	enclosure, 
+		   	author, 
+		   	creator, 
+		   	pubdate,
+		   	inserted
+	   	) VALUES
+	    <foreach collection="list" item="item" separator="," >
+	    	(
+				#{item.guid}, 
+				#{item.title}, 
+				#{item.category}, 
+				#{item.link},
+				#{item.enclosure}, 
+				#{item.author}, 
+				#{item.creator}, 
+				#{item.pubDate},
+				now()
+			)
+	    </foreach>
+	 </insert>
+	 
+	 <select id="news" parameterType="HashMap" resultType="NewsVo">
+	 	SELECT
+	 	rt.*
+	 	FROM RSS_T rt
+	 	WHERE 1=1
+		<if test="search_value != null and !search_value.equals('')">
+       		<choose>
+       			<when test="search_filter != null and search_filter.equals('guid')">
+       				AND UPPER(rt.guid) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+       			</when>
+       			<when test="search_filter != null and search_filter.equals('title')">
+       				AND UPPER(rt.title) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+       			</when>
+       			<when test="search_filter != null and search_filter.equals('category')">
+       				AND UPPER(rt.category) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+       			</when>
+       			<when test="search_filter != null and search_filter.equals('enclosure')">
+       				AND UPPER(rt.enclosure) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+       			</when>
+       			<when test="search_filter != null and search_filter.equals('author')">
+       				AND UPPER(rt.author) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+       			</when>
+       			<when test="search_filter != null and search_filter.equals('creator')">
+       				AND UPPER(rt.creator) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+       			</when>
+       			<otherwise>
+					AND 
+					(
+					UPPER(rt.guid) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+					OR UPPER(rt.title) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+					OR UPPER(rt.category) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+					OR UPPER(rt.enclosure) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+					OR UPPER(rt.author) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+					OR UPPER(rt.creator) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+					)
+       			</otherwise>
+       		</choose>
+		</if>
+		<if test="search_sdate != null and !search_sdate.equals('')">
+			<![CDATA[AND rt.pubdate >= STR_TO_DATE(#{search_sdate}, '%Y.%m.%d')]]>
+		</if>
+		<if test="search_edate != null and !search_edate.equals('')">
+			<![CDATA[AND rt.pubdate < ADDDATE(STR_TO_DATE(#{search_edate}, '%Y.%m.%d'), INTERVAL 1 DAY)]]>
+		</if>
+		<choose>
+     		<when test="search_order != null and !search_order.equals('desc')">
+				ORDER BY rt.guid DESC
+    		</when>
+    		<otherwise>
+    			ORDER BY rt.guid ASC
+    		</otherwise>
+    	</choose>
+		OFFSET #{offset} ROWS FETCH FIRST #{fetch} ROWS ONLY
+	 </select>
+	 
+	  <select id="newsCount" parameterType="HashMap" resultType="int">
+	 	SELECT
+	 	COUNT(*)
+	 	FROM RSS_T rt
+	 	WHERE 1=1
+		<if test="search_value != null and !search_value.equals('')">
+       		<choose>
+       			<when test="search_filter != null and search_filter.equals('guid')">
+       				AND UPPER(rt.guid) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+       			</when>
+       			<when test="search_filter != null and search_filter.equals('title')">
+       				AND UPPER(rt.title) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+       			</when>
+       			<when test="search_filter != null and search_filter.equals('category')">
+       				AND UPPER(rt.category) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+       			</when>
+       			<when test="search_filter != null and search_filter.equals('enclosure')">
+       				AND UPPER(rt.enclosure) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+       			</when>
+       			<when test="search_filter != null and search_filter.equals('author')">
+       				AND UPPER(rt.author) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+       			</when>
+       			<when test="search_filter != null and search_filter.equals('creator')">
+       				AND UPPER(rt.creator) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+       			</when>
+       			<otherwise>
+					AND 
+					(
+					UPPER(rt.guid) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+					OR UPPER(rt.title) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+					OR UPPER(rt.category) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+					OR UPPER(rt.enclosure) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+					OR UPPER(rt.author) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+					OR UPPER(rt.creator) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+					)
+       			</otherwise>
+       		</choose>
+		</if>
+		<if test="search_sdate != null and !search_sdate.equals('')">
+			<![CDATA[AND rt.pubdate >= STR_TO_DATE(#{search_sdate}, '%Y.%m.%d')]]>
+		</if>
+		<if test="search_edate != null and !search_edate.equals('')">
+			<![CDATA[AND rt.pubdate < ADDDATE(STR_TO_DATE(#{search_edate}, '%Y.%m.%d'), INTERVAL 1 DAY)]]>
+		</if>
+		<choose>
+     		<when test="search_order != null and !search_order.equals('desc')">
+				ORDER BY rt.guid DESC
+    		</when>
+    		<otherwise>
+    			ORDER BY rt.guid ASC
+    		</otherwise>
+    	</choose>
+	 </select>
+</mapper>

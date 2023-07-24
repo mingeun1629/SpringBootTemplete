@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTO Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dmonster.reward.mng.MngDao">
+
+    <insert id="setMember" parameterType="MemberVo" useGeneratedKeys="true" keyColumn="idx" keyProperty="idx">
+		INSERT INTO MEMBER_T(mt_id, mt_pwd, mt_type, mt.mt_wdate)
+		VALUES(#{mt_id}, #{mt_pwd}, 2, now())
+    </insert>
+    
+    <select id="getMember" parameterType="MemberVo" resultType="MemberVo">
+    	SELECT mt_id, mt_pwd, mt_type, mt_wdate, mt_name
+    	FROM MEMBER_T
+    	WHERE mt_id = #{mt_id}
+    	AND mt_type = 2
+    	LIMIT 1
+    </select>
+    
+    <select id="getMemberList" parameterType="hashmap" resultType="MemberVo">
+    	SELECT
+		mt.idx,
+		mt.mt_id,
+		mt.mt_type,
+		mt.mt_wdate,
+		mt.mt_name
+    	FROM
+    	member_t mt
+    	WHERE 1=1
+    	<if test="search_type != null and !search_type.equals('')">
+    		<choose>
+       			<when test="search_type.equals('user')">
+       				AND mt.mt_type = 1
+       			</when>
+       			<when test="search_type.equals('admin')">
+       				AND mt.mt_type = 2
+       			</when>
+       			<otherwise>
+       			</otherwise>
+       		</choose>
+    	</if>
+		<if test="search_value != null and !search_value.equals('')">
+       		<choose>
+       			<when test="search_filter != null and search_filter.equals('mt_id')">
+       				AND UPPER(mt.mt_id) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+       			</when>
+       			<when test="search_filter != null and search_filter.equals('mt_name')">
+       				AND UPPER(mt.mt_name) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+       			</when>
+       			<otherwise>
+					AND 
+					(
+					UPPER(mt.mt_id) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+					OR UPPER(mt.mt_name) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+					)
+       			</otherwise>
+       		</choose>
+		</if>
+		<if test="search_sdate != null and !search_sdate.equals('')">
+			<![CDATA[AND mt.mt_wdate >= STR_TO_DATE(#{search_sdate}, '%Y.%m.%d')]]>
+		</if>
+		<if test="search_edate != null and !search_edate.equals('')">
+			<![CDATA[AND mt.mt_wdate < ADDDATE(STR_TO_DATE(#{search_edate}, '%Y.%m.%d'), INTERVAL 1 DAY)]]>
+		</if>
+		<if test="search_sdate2 != null and !search_sdate2.equals('')">
+			<![CDATA[AND mt.mt_wdate >= STR_TO_DATE(#{search_sdate2}, '%Y.%m.%d')]]>
+		</if>
+		<if test="search_edate2 != null and !search_edate2.equals('')">
+			<![CDATA[AND mt.mt_wdate < ADDDATE(STR_TO_DATE(#{search_edate2}, '%Y.%m.%d'), INTERVAL 1 DAY)]]>
+		</if>
+    	ORDER BY mt.idx DESC
+		OFFSET #{offset} ROWS FETCH FIRST #{fetch} ROWS ONLY
+    </select>
+    
+    <select id="getMemberListCount" parameterType="hashmap" resultType="int">
+    	SELECT
+		COUNT(*)
+    	FROM
+    	member_t mt
+    	WHERE mt.mt_type = 1
+    	<if test="search_value != null and !search_value.equals('')">
+       		<choose>
+       			<when test="search_filter != null and search_filter.equals('mt_id')">
+       				AND UPPER(mt.mt_id) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+       			</when>
+       			<when test="search_filter != null and search_filter.equals('mt_name')">
+       				AND UPPER(mt.mt_name) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+       			</when>
+       			<otherwise>
+					AND 
+					(
+					UPPER(mt.mt_id) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+					OR UPPER(mt.mt_name) LIKE UPPER(CONCAT('%',#{search_value},'%'))
+					)
+       			</otherwise>
+       		</choose>
+		</if>
+		<if test="search_sdate != null and !search_sdate.equals('')">
+			<![CDATA[AND mt.mt_wdate >= STR_TO_DATE(#{search_sdate}, '%Y.%m.%d')]]>
+		</if>
+		<if test="search_edate != null and !search_edate.equals('')">
+			<![CDATA[AND mt.mt_wdate < ADDDATE(STR_TO_DATE(#{search_edate}, '%Y.%m.%d'), INTERVAL 1 DAY]]>
+		</if>
+		<if test="search_sdate2 != null and !search_sdate2.equals('')">
+			<![CDATA[AND mt.mt_wdate >= STR_TO_DATE(#{search_sdate2}, '%Y.%m.%d')]]>
+		</if>
+		<if test="search_edate2 != null and !search_edate2.equals('')">
+			<![CDATA[AND mt.mt_wdate < ADDDATE(STR_TO_DATE(#{search_edate2}, '%Y.%m.%d'), INTERVAL 1 DAY]]>
+		</if>
+    </select>
+</mapper>

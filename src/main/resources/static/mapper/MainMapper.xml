@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTO Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dmonster.reward.main.MainDao">
+
+    <insert id="setMember" parameterType="MemberVo" useGeneratedKeys="true" keyColumn="idx" keyProperty="idx">
+		INSERT INTO MEMBER_T(mt_id, mt_pwd, mt_type)
+		VALUES(#{mt_id}, #{mt_pwd}, 1)
+    </insert>
+    
+    <select id="getMember" parameterType="MemberVo" resultType="MemberVo">
+    	SELECT idx, mt_id, mt_pwd, mt_type, mt_wdate, mt_name
+    	FROM MEMBER_T
+    	WHERE mt_id = #{mt_id}
+    	AND mt_type = 1
+    </select>
+    
+</mapper>
